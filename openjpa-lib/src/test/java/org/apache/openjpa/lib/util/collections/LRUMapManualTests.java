@@ -96,6 +96,37 @@ public class LRUMapManualTests {
         assertEquals(Integer.valueOf(2), map.get("b"));
     }
 
+    @Test
+    public void multipleEvictionsVerifyOrder() {
+        EvictionTrackingMap<String, Integer> map = new EvictionTrackingMap<>(2);
+        map.put("first", 1);
+        map.put("second", 2);
+        map.put("third", 3);  // evicts first
+
+        assertEquals(1, map.getEvictionCount());
+        assertFalse(map.containsKey("first"));
+
+        map.put("fourth", 4);  // evicts second
+
+        assertEquals(2, map.getEvictionCount());
+        assertFalse(map.containsKey("second"));
+    }
+
+    @Test
+    public void removeViaContainsKeyDoesNotAffectEviction() {
+        LRUMap<String, Integer> map = new LRUMap<>(2);
+        map.put("a", 1);
+        map.put("b", 2);
+
+        boolean exists = map.containsKey("a");
+
+        assertTrue(exists);
+        map.put("c", 3); // should still evict a, not b
+
+        assertFalse(map.containsKey("a"));
+        assertTrue(map.containsKey("b"));
+    }
+
     // ========== Inner helper classes ==========
 
     private static final class RecordingLRUMap<K, V> extends LRUMap<K, V> {
@@ -109,6 +140,24 @@ public class LRUMapManualTests {
         protected boolean removeLRU(AbstractLinkedMap.LinkEntry<K, V> entry) {
             seenKeys.add(entry.getKey());
             return seenKeys.size() > 1; // evict second candidate
+        }
+    }
+
+    private static final class EvictionTrackingMap<K, V> extends LRUMap<K, V> {
+        private int evictionCount = 0;
+
+        EvictionTrackingMap(int maxSize) {
+            super(maxSize);
+        }
+
+        @Override
+        protected boolean removeLRU(AbstractLinkedMap.LinkEntry<K, V> entry) {
+            evictionCount++;
+            return true;
+        }
+
+        int getEvictionCount() {
+            return evictionCount;
         }
     }
 }

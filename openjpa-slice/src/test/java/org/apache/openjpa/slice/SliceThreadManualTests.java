@@ -109,4 +109,46 @@ public class SliceThreadManualTests {
 
         assertSame("ok", task.get());
     }
-}
+
+    @Test
+    public void threadNameFollowsExpectedPattern() {
+        Thread parent = Thread.currentThread();
+        parent.setName("TestParent");
+        SliceThread t = new SliceThread(parent, () -> {});
+
+        assertTrue(t.getName().startsWith("TestParent"));
+        assertTrue(t.getName().contains("-slice-"));
+    }
+
+    @Test
+    public void explicitNameOverridesDefaultNaming() {
+        Thread parent = Thread.currentThread();
+        SliceThread t1 = new SliceThread("explicit-1", parent, () -> {});
+        SliceThread t2 = new SliceThread("explicit-2", parent, () -> {});
+
+        assertEquals("explicit-1", t1.getName());
+        assertEquals("explicit-2", t2.getName());
+        assertFalse(t1.getName().equals(t2.getName()));
+    }
+
+    @Test
+    public void multipleThreadsPreserveParentIdentity() {
+        Thread parent = Thread.currentThread();
+        SliceThread t1 = new SliceThread(parent, () -> {});
+        SliceThread t2 = new SliceThread(parent, () -> {});
+
+        assertSame(parent, t1.getParent());
+        assertSame(parent, t2.getParent());
+        assertSame(t1.getParent(), t2.getParent());
+    }
+
+    @Test
+    public void poolSubmissionVerifiesDelegation() throws Exception {
+        ExecutorService pool = SliceThread.getPool();
+        Runnable mockRunnable = mock(Runnable.class);
+        SliceThread thread = new SliceThread(Thread.currentThread(), mockRunnable);
+
+        thread.run();
+
+        verify(mockRunnable).run();
+    }

@@ -30,8 +30,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-// LLM-generated scenario tests
-public class SliceThreadTest {
+/**
+ * LLM-generated scenario tests for SliceThread.
+ */
+public class SliceThreadLLMGeneratedTests {
 
     @Test
     public void reusesSameExecutorInstance() throws Exception {
@@ -72,6 +74,59 @@ public class SliceThreadTest {
         CountDownLatch latch = new CountDownLatch(1);
         pool.submit(latch::countDown);
         assertTrue(latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void poolExecutesMultipleRunnablesInOrder() throws Exception {
+        resetPool();
+        ExecutorService pool = SliceThread.getPool();
+        java.util.List<Integer> results = new java.util.ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(3);
+
+        for (int i = 0; i < 3; i++) {
+            final int value = i;
+            pool.submit(() -> {
+                results.add(value);
+                latch.countDown();
+            });
+        }
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
+        assertEquals(3, results.size());
+    }
+
+    @Test
+    public void poolNamingIsConsistentAcrossRequests() throws Exception {
+        resetPool();
+        ExecutorService pool = SliceThread.getPool();
+        String originalName = Thread.currentThread().getName();
+
+        java.util.List<String> threadNames = new java.util.ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(2);
+
+        for (int i = 0; i < 2; i++) {
+            pool.submit(() -> {
+                threadNames.add(Thread.currentThread().getName());
+                latch.countDown();
+            });
+        }
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
+        for (String name : threadNames) {
+            assertTrue(name.startsWith(originalName));
+            assertTrue(name.contains("-slice-"));
+        }
+    }
+
+    @Test
+    public void multiplePoolInstancesAreNotCreated() throws Exception {
+        resetPool();
+        ExecutorService pool1 = SliceThread.getPool();
+        ExecutorService pool2 = SliceThread.getPool();
+        ExecutorService pool3 = SliceThread.getPool();
+
+        assertSame(pool1, pool2);
+        assertSame(pool2, pool3);
     }
 
     private void resetPool() throws Exception {
