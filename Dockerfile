@@ -11,11 +11,9 @@ WORKDIR /workspace
 # Copy entire project
 COPY . .
 
-# Compile and run tests directly with surefire (no checkstyle/verify phase)
-RUN mvn -pl openjpa-lib,openjpa-slice -am -q compile test-compile && \
-    mvn -pl openjpa-lib,openjpa-slice -q surefire:test
-
-# Final stage for test reports
+    # Install modules and compile tests (but skip test execution), then run only surefire tests
+    RUN mvn -pl openjpa-lib,openjpa-kernel,openjpa-jdbc,openjpa-persistence,openjpa-persistence-jdbc,openjpa-slice -am install -Dmaven.test.skip.exec=true -Pno-checks && \
+        mvn -pl openjpa-lib,openjpa-slice surefire:test -Pno-checks
 FROM eclipse-temurin:11-jdk-alpine
 
 RUN apk add --no-cache \

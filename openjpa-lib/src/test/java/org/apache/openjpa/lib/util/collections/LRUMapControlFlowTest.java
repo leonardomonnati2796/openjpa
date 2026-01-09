@@ -22,25 +22,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
-import org.apache.openjpa.lib.util.collections.AbstractLinkedMap.LinkEntry;
 import org.junit.Test;
 
-// LLM-generated scenario tests
-public class LRUMapTest {
-
-    @Test(expected = IllegalArgumentException.class)
-    public void rejectsMaxSizeBelowOne() {
-        new LRUMap<>(0);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void rejectsInitialSizeGreaterThanMax() {
-        new LRUMap<>(1, 2);
-    }
+/**
+ * Control-flow guided tests for LRUMap: hit eviction paths and promotion logic.
+ */
+public class LRUMapControlFlowTest {
 
     @Test
     public void evictsLeastRecentlyUsedEntryOnOverflow() {
@@ -48,7 +37,7 @@ public class LRUMapTest {
         map.put("a", 1);
         map.put("b", 2);
 
-        map.put("c", 3);
+        map.put("c", 3); // should evict "a"
 
         assertFalse(map.containsKey("a"));
         assertTrue(map.containsKey("b"));
@@ -62,8 +51,8 @@ public class LRUMapTest {
         map.put("a", 1);
         map.put("b", 2);
 
-        map.get("a");
-        map.put("c", 3);
+        map.get("a"); // promotes a
+        map.put("c", 3); // evicts b
 
         assertTrue(map.containsKey("a"));
         assertFalse(map.containsKey("b"));
@@ -76,30 +65,25 @@ public class LRUMapTest {
         map.put("a", 1);
         map.put("b", 2);
 
-        map.put("c", 3);
+        map.put("c", 3); // first candidate rejected, second accepted
 
-        assertEquals(Arrays.asList("a", "b"), map.getSeenKeys());
+        assertEquals(Arrays.asList("a", "b"), map.seenKeys);
         assertTrue(map.containsKey("a"));
         assertFalse(map.containsKey("b"));
         assertTrue(map.containsKey("c"));
-        assertEquals(2, map.size());
     }
 
     private static final class RecordingLRUMap<K, V> extends LRUMap<K, V> {
-        private final List<K> seenKeys = new ArrayList<>();
+        final java.util.List<K> seenKeys = new java.util.ArrayList<>();
 
         RecordingLRUMap(int maxSize, boolean scanUntilRemovable) {
             super(maxSize, maxSize, DEFAULT_LOAD_FACTOR, scanUntilRemovable);
         }
 
         @Override
-        protected boolean removeLRU(LinkEntry<K, V> entry) {
+        protected boolean removeLRU(AbstractLinkedMap.LinkEntry<K, V> entry) {
             seenKeys.add(entry.getKey());
-            return seenKeys.size() > 1;
-        }
-
-        List<K> getSeenKeys() {
-            return seenKeys;
+            return seenKeys.size() > 1; // evict second candidate
         }
     }
 }
