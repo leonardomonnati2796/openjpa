@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  openjpa-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openjpa-test-runner
+    volumes:
+      # Mount project root
+      - .:/workspace
+      # Optional: named volume for Maven cache (speed up rebuilds)
+      - maven-cache:/root/.m2
+    working_dir: /workspace
+    environment:
+      - MAVEN_CONFIG=/root/.m2
+    # Keep container running so you can inspect results
+    stdin_open: true
+    tty: true
+    command: bash -c "mvn -pl openjpa-lib,openjpa-slice -am clean test jacoco:report && echo 'Tests completed. Reports in target/site/' && bash"
+
+volumes:
+  maven-cache:
+    driver: local
