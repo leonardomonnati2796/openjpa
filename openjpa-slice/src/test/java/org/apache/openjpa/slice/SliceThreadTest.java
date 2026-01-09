@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+// LLM-generated scenario tests
 public class SliceThreadTest {
 
     @Test

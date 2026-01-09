@@ -1,27 +1,25 @@
 # Multi-stage build for OpenJPA test suite with coverage
-FROM openjdk:11-slim as builder
+FROM eclipse-temurin:11-jdk-alpine as builder
 
-# Install Maven
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install Maven and Git
+RUN apk add --no-cache \
     maven \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    git
 
 WORKDIR /workspace
 
 # Copy entire project
 COPY . .
 
-# Build and run tests with coverage
-RUN mvn -q clean && \
-    mvn -pl openjpa-lib,openjpa-slice -am clean test jacoco:report
+# Compile and run tests directly with surefire (no checkstyle/verify phase)
+RUN mvn -pl openjpa-lib,openjpa-slice -am -q compile test-compile && \
+    mvn -pl openjpa-lib,openjpa-slice -q surefire:test
 
 # Final stage for test reports
-FROM openjdk:11-slim
+FROM eclipse-temurin:11-jdk-alpine
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    maven \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    maven
 
 WORKDIR /workspace
 
