@@ -37,6 +37,18 @@
 
     <dependencies>
         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.11.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>jakarta-regexp</groupId>
             <artifactId>jakarta-regexp</artifactId>
             <scope>test</scope>
@@ -83,6 +95,43 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>1.15.8</version>
+                <configuration>
+                    <targetClasses>
+                        <param>org.apache.openjpa.lib.util.collections.*</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>org.apache.openjpa.lib.util.collections.*Test</param>
+                    </targetTests>
+                    <threads>2</threads>
+                    <outputFormats>
+                        <param>HTML</param>
+                        <param>XML</param>
+                    </outputFormats>
+                </configuration>
+            </plugin>
             <!--
                 get the git revision number and set it in the git.revision setting - disabled for now
                 since we need to be able to build from sources zip (when there is no .git/config)
