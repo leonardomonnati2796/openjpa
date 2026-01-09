@@ -22,17 +22,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
 
 import org.junit.After;
 import org.junit.Test;
 
 /**
- * Control-flow guided tests for SliceThread pool creation and naming.
+ * Hand-written tests for SliceThread: control-flow and mock-based verification.
+ * These tests target pool creation, naming conventions, and executor delegation.
  */
-public class SliceThreadControlFlowTest {
+public class SliceThreadManualTests {
 
     @After
     public void resetPool() throws Exception {
@@ -40,6 +45,8 @@ public class SliceThreadControlFlowTest {
         poolField.setAccessible(true);
         poolField.set(null, null);
     }
+
+    // ========== Control-flow tests ==========
 
     @Test
     public void getPoolIsLazyAndSingleton() {
@@ -77,5 +84,29 @@ public class SliceThreadControlFlowTest {
         SliceThread t = new SliceThread("custom-slice", parent, () -> {});
         assertEquals("custom-slice", t.getName());
         assertEquals(parent, t.getParent());
+    }
+
+    // ========== Mock-based tests ==========
+
+    @Test
+    public void runnableDelegatesToMock() {
+        Runnable runnable = mock(Runnable.class);
+        SliceThread thread = new SliceThread(Thread.currentThread(), runnable);
+
+        thread.run();
+
+        verify(runnable).run();
+        assertSame(Thread.currentThread(), thread.getParent());
+    }
+
+    @Test
+    public void callableExecutesThroughPool() throws Exception {
+        Callable<String> callable = () -> "ok";
+        FutureTask<String> task = new FutureTask<>(callable);
+        SliceThread thread = new SliceThread(Thread.currentThread(), task);
+
+        thread.run();
+
+        assertSame("ok", task.get());
     }
 }

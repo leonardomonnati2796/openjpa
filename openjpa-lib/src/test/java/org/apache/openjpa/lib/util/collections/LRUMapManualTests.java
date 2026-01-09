@@ -21,15 +21,23 @@ package org.apache.openjpa.lib.util.collections;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import java.util.Arrays;
 
 import org.junit.Test;
 
 /**
- * Control-flow guided tests for LRUMap: hit eviction paths and promotion logic.
+ * Hand-written tests for LRUMap: control-flow and mock-based verification.
+ * These tests target specific code paths and verify hook behavior.
  */
-public class LRUMapControlFlowTest {
+public class LRUMapManualTests {
+
+    // ========== Control-flow tests ==========
 
     @Test
     public void evictsLeastRecentlyUsedEntryOnOverflow() {
@@ -72,6 +80,23 @@ public class LRUMapControlFlowTest {
         assertFalse(map.containsKey("b"));
         assertTrue(map.containsKey("c"));
     }
+
+    // ========== Mock-based tests ==========
+
+    @Test
+    public void usesRemoveLruHookWhenFull() {
+        LRUMap<String, Integer> map = spy(new LRUMap<>(1));
+        doReturn(true).when(map).removeLRU(any(AbstractLinkedMap.LinkEntry.class));
+
+        map.put("a", 1);
+        map.put("b", 2); // should delegate to removeLRU
+
+        verify(map, atLeastOnce()).removeLRU(any(AbstractLinkedMap.LinkEntry.class));
+        assertFalse(map.containsKey("a"));
+        assertEquals(Integer.valueOf(2), map.get("b"));
+    }
+
+    // ========== Inner helper classes ==========
 
     private static final class RecordingLRUMap<K, V> extends LRUMap<K, V> {
         final java.util.List<K> seenKeys = new java.util.ArrayList<>();
